@@ -2,47 +2,65 @@ package com.example.foodapp.Helper
 
 import android.content.Context
 import com.example.foodapp.Domain.FoodModel
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 
-class FavoriteManager(private val context: Context) {
-    private val sharedPreferences = context.getSharedPreferences("favorites_prefs", Context.MODE_PRIVATE)
-    private val gson = Gson()
+class FavoriteManager(val context: Context) {
+    private val database = FirebaseDatabase.getInstance().getReference("favorites")
+    private val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
+    private val userId = sharedPreferences.getString("user_id", "") ?: ""
 
     fun addFavorite(item: FoodModel) {
-        val favorites = getFavorites().toMutableList()
-        if (!favorites.any { it.Id == item.Id }) {
-            item.isFavorite = true
-            favorites.add(item)
-            saveFavorites(favorites)
-        }
+        if (userId.isEmpty()) return
+        database.child(userId).child("items").child(item.Title).setValue(item)
     }
 
     fun removeFavorite(item: FoodModel) {
-        val favorites = getFavorites().toMutableList()
-        favorites.removeAll { it.Id == item.Id }
-        item.isFavorite = false
-        saveFavorites(favorites)
+        if (userId.isEmpty()) return
+        database.child(userId).child("items").child(item.Title).removeValue()
     }
 
-    fun getFavorites(): List<FoodModel> {
-        val json = sharedPreferences.getString("favorites", null)
-        return if (json != null) {
-            val type = object : TypeToken<List<FoodModel>>() {}.type
-            gson.fromJson(json, type) ?: emptyList()
-        } else {
-            emptyList()
+    fun isFavorite(item: FoodModel, callback: (Boolean) -> Unit) {
+        if (userId.isEmpty()) {
+            callback(false)
+            return
         }
+
+        database.child(userId).child("items").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val isFav = snapshot.children.any { it.getValue(FoodModel::class.java)?.Title == item.Title }
+                callback(isFav)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(false)
+            }
+        })
     }
 
-    fun isFavorite(item: FoodModel): Boolean {
-        return getFavorites().any { it.Id == item.Id }
-    }
+    fun getFavorites(callback: (List<FoodModel>) -> Unit) {
+        if (userId.isEmpty()) {
+            callback(emptyList())
+            return
+        }
 
-    private fun saveFavorites(favorites: List<FoodModel>) {
-        val editor = sharedPreferences.edit()
-        val json = gson.toJson(favorites)
-        editor.putString("favorites", json)
-        editor.apply()
+        database.child(userId).child("items").addListenerForSingleValueEvent(object : ValueEventListener {
+            override fun onDataChange(snapshot: DataSnapshot) {
+                val favorites = mutableListOf<FoodModel>()
+                for (itemSnapshot in snapshot.children) {
+                    val item = itemSnapshot.getValue(FoodModel::class.java)
+                    if (item != null) {
+                        favorites.add(item)
+                    }
+                }
+                callback(favorites)
+            }
+
+            override fun onCancelled(error: DatabaseError) {
+                callback(emptyList())
+            }
+        })
     }
 }

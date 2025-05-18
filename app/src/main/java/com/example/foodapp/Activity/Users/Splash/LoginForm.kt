@@ -4,11 +4,13 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -25,30 +27,34 @@ import androidx.compose.ui.unit.sp
 import com.example.foodapp.Activity.admin.AdminActivity
 import com.example.foodapp.Activity.Dashboard.MainActivity
 import com.example.foodapp.R
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.DataSnapshot
+import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ValueEventListener
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun LoginForm(
     onBack: () -> Unit = {},
+    onForgotPassword: () -> Unit,
     snackbarHostState: SnackbarHostState,
     scope: CoroutineScope
 ) {
     val database: DatabaseReference = FirebaseDatabase.getInstance("https://foodapp-48431-default-rtdb.firebaseio.com/").getReference("users")
+    val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = colorResource(R.color.darkBrown))
             .padding(24.dp)
     ) {
         Image(
-            painter = painterResource(R.drawable.toan),
+            painter = painterResource(R.drawable.logo),
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
@@ -56,8 +62,9 @@ fun LoginForm(
             contentScale = ContentScale.Crop
         )
         Text(
-            text = "Đăng Nhập",
+            text = "Đăng nhập",
             fontSize = 32.sp,
+            fontFamily = PlayWriteFontFamily,
             color = Color.White,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -130,6 +137,16 @@ fun LoginForm(
             )
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Quên mật khẩu?",
+            color = Color.White,
+            fontSize = 16.sp,
+            modifier = Modifier
+                .align(Alignment.End)
+                .clickable { onForgotPassword() }
+                .padding(top = 8.dp)
+        )
         Spacer(modifier = Modifier.height(24.dp))
         Button(
             onClick = {
@@ -137,44 +154,49 @@ fun LoginForm(
                     scope.launch {
                         snackbarHostState.showSnackbar("Vui lòng điền đầy đủ thông tin")
                     }
-                    errorMessage = null
+                    errorMessage = "Vui lòng nhập tên đăng nhập và mật khẩu"
                 } else {
-                    database.child(username).get().addOnSuccessListener { snapshot ->
-                        if (snapshot.exists()) {
-                            val storedPassword = snapshot.child("password").getValue(String::class.java)
-                            val role = snapshot.child("role").getValue(String::class.java) ?: "user"
+                    database.child(username).addListenerForSingleValueEvent(object : ValueEventListener {
+                        override fun onDataChange(snapshot: DataSnapshot) {
+                            if (snapshot.exists()) {
+                                val email = snapshot.child("email").getValue(String::class.java) ?: ""
+                                val role = snapshot.child("role").getValue(String::class.java) ?: "user"
 
-                            if (storedPassword == password) {
-                                // Lưu username vào SharedPreferences
-                                sharedPreferences.edit().putString("user_id", username).apply()
-
-                                errorMessage = null
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Đăng nhập thành công")
-                                    if (role == "admin") {
-                                        context.startActivity(Intent(context, AdminActivity::class.java))
-                                    } else {
-                                        context.startActivity(Intent(context, MainActivity::class.java))
+                                auth.signInWithEmailAndPassword(email, password)
+                                    .addOnCompleteListener { authTask ->
+                                        if (authTask.isSuccessful) {
+                                            sharedPreferences.edit().putString("user_id", username).apply()
+                                            errorMessage = null
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Đăng nhập thành công")
+                                                if (role == "admin") {
+                                                    context.startActivity(Intent(context, AdminActivity::class.java))
+                                                } else {
+                                                    context.startActivity(Intent(context, MainActivity::class.java))
+                                                }
+                                            }
+                                        } else {
+                                            errorMessage = "Tên đăng nhập hoặc mật khẩu không đúng"
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Tên đăng nhập hoặc mật khẩu không đúng")
+                                            }
+                                        }
                                     }
-                                }
                             } else {
-                                errorMessage = "Mật khẩu không đúng"
+                                errorMessage = "Tài khoản không tồn tại"
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Mật khẩu không đúng")
+                                    snackbarHostState.showSnackbar("Tài khoản không tồn tại")
                                 }
                             }
-                        } else {
-                            errorMessage = "Tài khoản không tồn tại"
+                        }
+
+                        override fun onCancelled(error: DatabaseError) {
+                            errorMessage = "Lỗi: ${error.message}"
                             scope.launch {
-                                snackbarHostState.showSnackbar("Tài khoản không tồn tại")
+                                snackbarHostState.showSnackbar("Lỗi: ${error.message}")
                             }
                         }
-                    }.addOnFailureListener { e ->
-                        errorMessage = "Đăng nhập thất bại: ${e.message}"
-                        scope.launch {
-                            snackbarHostState.showSnackbar("Đăng nhập thất bại: ${e.message}")
-                        }
-                    }
+                    })
                 }
             },
             modifier = Modifier.fillMaxWidth().height(50.dp),

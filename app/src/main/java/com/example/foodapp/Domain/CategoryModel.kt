@@ -7,5 +7,5 @@ data class CategoryModel(
     @PropertyName("name") val name: String? = null,
     @PropertyName("imagePath") val imagePath: String? = null
 ) {
-    constructor() : this(0, null, null) // Constructor rỗng cho Firebase
+    constructor() : this(0, null, null)
 }

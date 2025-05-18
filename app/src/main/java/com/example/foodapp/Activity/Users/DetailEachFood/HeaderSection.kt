@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,7 +39,14 @@ fun HeaderSection(
 ) {
     val context = LocalContext.current
     val favoriteManager = remember { FavoriteManager(context) }
-    var isFavorite by remember { mutableStateOf(favoriteManager.isFavorite(item)) }
+    var isFavorite by remember { mutableStateOf(false) }
+
+    // Tải trạng thái yêu thích từ Firebase
+    LaunchedEffect(item.Title) {
+        favoriteManager.isFavorite(item) { isFav ->
+            isFavorite = isFav
+        }
+    }
 
     ConstraintLayout(
         modifier = Modifier

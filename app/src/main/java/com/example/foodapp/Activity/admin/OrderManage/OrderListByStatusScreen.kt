@@ -9,13 +9,11 @@ import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.foodapp.Activity.Dashboard.TopBar
-import com.example.foodapp.R
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
@@ -73,7 +71,7 @@ fun OrderListByStatusScreen(
                             popUpTo(navController.graph.startDestinationId)
                             launchSingleTop = true
                         }
-                        2 -> {} // Ở lại màn hình hiện tại
+                        2 -> {}
                         3 -> navController.navigate("category_management") {
                             popUpTo(navController.graph.startDestinationId)
                             launchSingleTop = true
@@ -163,14 +161,19 @@ fun AdminOrderItem(order: Order) {
             color = when (order.status) {
                 "Chưa xác nhận", "Đang chờ xử lý" -> Color.Red
                 "Đã xác nhận" -> Color.Blue
-                "Đang giao hàng" -> Color(0xFFFFA500) // Orange
+                "Đang giao hàng" -> Color(0xFFFFA500)
                 "Đã giao hàng" -> Color.Green
                 else -> Color.Gray
             },
             modifier = Modifier.padding(top = 4.dp)
         )
+        Text(
+            text = "Thanh toán: ${order.paymentStatus}",
+            fontSize = 14.sp,
+            color = if (order.paymentStatus == "Đã thanh toán") Color.Green else Color.Red,
+            modifier = Modifier.padding(top = 4.dp)
+        )
 
-        // Nút cập nhật trạng thái
         if (order.status != "Đã giao hàng") {
             Button(
                 onClick = { expanded = true },
@@ -217,6 +220,7 @@ data class Order(
     val totalAmount: Double = 0.0,
     val status: String = "Chưa xác nhận",
     val paymentMethod: String? = null,
+    val paymentStatus: String = "Chưa thanh toán",
     val timestamp: Long = 0L
 )
 

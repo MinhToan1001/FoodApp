@@ -3,11 +3,14 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Quyền truy cập ảnh -->
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+    <uses-permission
+        android:name="android.permission.READ_EXTERNAL_STORAGE"
         android:maxSdkVersion="32" />
     <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
-    <!-- Quyền internet để sử dụng Firebase và Cloudinary -->
+
+    <!-- Quyền internet để sử dụng Firebase, Cloudinary và PayPal -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <application
         android:allowBackup="true"
@@ -18,7 +21,11 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.FoodApp"
-        tools:targetApi="34"> <!-- Cập nhật targetApi lên phiên bản mới nhất -->
+        tools:targetApi="34">
+
+        <activity
+            android:name=".Activity.BaseActivity"
+            android:exported="false" />
         <activity
             android:name=".Activity.Order.OrderActivity"
             android:exported="false" />
@@ -48,10 +55,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
         <activity
             android:name=".Activity.Dashboard.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.FoodApp" />
+            android:theme="@style/Theme.FoodApp">
+        </activity>
+
     </application>
 </manifest>

@@ -32,31 +32,20 @@ fun RowDetail(
             contentDescription = null
         )
         Text(
-            text = "${item.TimeValue}phút",
+            text = "${item.TimeValue} phút",
             modifier = Modifier.padding(start = 8.dp),
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,
             color = colorResource(R.color.darkPurple)
         )
         Spacer(modifier = Modifier.width(32.dp))
-        Image(
-            painter = painterResource(R.drawable.star),
-            contentDescription = null
-        )
-        Text(
-            text = String.format("%.1f", averageStars), // Sử dụng averageStars thay vì item.Star
-            modifier = Modifier.padding(start = 8.dp),
-            fontWeight = FontWeight.Bold,
-            fontSize = 15.sp,
-            color = colorResource(R.color.darkPurple)
-        )
         Spacer(modifier = Modifier.width(32.dp))
         Image(
             painter = painterResource(R.drawable.flame),
             contentDescription = null
         )
         Text(
-            text = "${item.Calorie} min",
+            text = "${item.Calorie} calo",
             modifier = Modifier.padding(start = 8.dp),
             fontWeight = FontWeight.Bold,
             fontSize = 15.sp,

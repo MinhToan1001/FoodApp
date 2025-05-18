@@ -29,7 +29,8 @@ fun DeliveryInfoBox(
     cartItems: ArrayList<FoodModel>,
     totalAmount: Double,
     managmentCart: ManagmentCart,
-    onOrderPlaced: () -> Unit
+    onOrderPlaced: () -> Unit,
+    onVNPayPayment: (Double) -> Unit
 ) {
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
@@ -123,21 +124,13 @@ fun DeliveryInfoBox(
                     Spacer(modifier = Modifier.width(16.dp))
                     RadioButton(
                         selected = selectedPaymentMethod == "Payment",
-                        onClick = {
-                            selectedPaymentMethod = if (selectedPaymentMethod == "Payment") null else "Payment"
-                        },
-                        colors = RadioButtonDefaults.colors(
-                            selectedColor = colorResource(R.color.orange),
-                            unselectedColor = Color.Gray
-                        )
+                        onClick = { selectedPaymentMethod = "Payment" }
                     )
                     Text(
-                        text = "Payment",
+                        text = "Payment (VNPay)",
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .clickable {
-                                selectedPaymentMethod = if (selectedPaymentMethod == "Payment") null else "Payment"
-                            },
+                            .clickable { selectedPaymentMethod = "Payment" },
                         fontSize = 16.sp
                     )
                 }
@@ -172,25 +165,31 @@ fun DeliveryInfoBox(
                                 )
                                 database.child(userId).updateChildren(updates)
 
-                                val orderRef = FirebaseDatabase.getInstance().getReference("orders").push()
-                                val order = hashMapOf(
-                                    "userId" to userId,
-                                    "items" to cartItems.map {
-                                        mapOf(
-                                            "title" to it.Title,
-                                            "price" to it.Price,
-                                            "quantity" to it.numberInCart
-                                        )
-                                    },
-                                    "totalAmount" to totalAmount,
-                                    "status" to "Đang chờ xử lý",
-                                    "paymentMethod" to selectedPaymentMethod,
-                                    "timestamp" to System.currentTimeMillis()
-                                )
-                                orderRef.setValue(order)
-
-                                managmentCart.clearCart()
-                                onOrderPlaced()
+                                if (selectedPaymentMethod == "Payment") {
+                                    onVNPayPayment(totalAmount)
+                                } else {
+                                    val orderRef = FirebaseDatabase.getInstance().getReference("orders").push()
+                                    val order = hashMapOf(
+                                        "userId" to userId,
+                                        "items" to cartItems.map {
+                                            mapOf(
+                                                "title" to it.Title,
+                                                "price" to it.Price,
+                                                "quantity" to it.numberInCart
+                                            )
+                                        },
+                                        "totalAmount" to totalAmount,
+                                        "status" to "Chưa xác nhận (COD)",
+                                        "paymentMethod" to "COD",
+                                        "timestamp" to System.currentTimeMillis()
+                                    )
+                                    orderRef.setValue(order).addOnSuccessListener {
+                                        managmentCart.clearCart()
+                                        onOrderPlaced()
+                                    }.addOnFailureListener { exception ->
+                                        errorMessage = "Lỗi khi đặt hàng: ${exception.message}"
+                                    }
+                                }
                             }
                         }
                     },

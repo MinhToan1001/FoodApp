@@ -102,12 +102,12 @@ private fun DetailScreen(
                     end.linkTo(parent.end)
                     start.linkTo(parent.start)
                 }
-                .padding(bottom = 80.dp) // Thêm padding để tránh bị che bởi footer
+                .padding(bottom = 80.dp)
         ) {
             HeaderSection(
                 item = item,
                 numberInCart = numberInCart,
-                averageStars = averageStars, // Truyền averageStars
+                averageStars = averageStars,
                 onBackClick = onBackClick,
                 onIncrement = {
                     numberInCart++

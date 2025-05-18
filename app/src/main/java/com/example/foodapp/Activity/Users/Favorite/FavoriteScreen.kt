@@ -26,7 +26,14 @@ import com.example.foodapp.R
 fun FavoriteScreen() {
     val context = LocalContext.current
     val favoriteManager = remember { FavoriteManager(context) }
-    var favorites by remember { mutableStateOf(favoriteManager.getFavorites()) }
+    var favorites by remember { mutableStateOf<List<FoodModel>>(emptyList()) }
+
+    // Tải danh sách yêu thích từ Firebase
+    LaunchedEffect(Unit) {
+        favoriteManager.getFavorites { items ->
+            favorites = items
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -55,7 +62,9 @@ fun FavoriteScreen() {
                         item = item,
                         onRemove = {
                             favoriteManager.removeFavorite(item)
-                            favorites = favoriteManager.getFavorites() // Cập nhật danh sách
+                            favoriteManager.getFavorites { updatedItems ->
+                                favorites = updatedItems
+                            }
                         }
                     )
                 }

@@ -22,6 +22,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.foodapp.R
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.FirebaseDatabase
 import kotlinx.coroutines.CoroutineScope
@@ -35,17 +36,17 @@ fun RegisterForm(
     scope: CoroutineScope
 ) {
     val database: DatabaseReference = FirebaseDatabase.getInstance("https://foodapp-48431-default-rtdb.firebaseio.com/").getReference("users")
+    val auth = FirebaseAuth.getInstance()
     val context = LocalContext.current
     val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(color = colorResource(R.color.darkBrown))
             .padding(24.dp)
     ) {
         Image(
-            painter = painterResource(R.drawable.toan),
+            painter = painterResource(R.drawable.logo),
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
@@ -53,8 +54,9 @@ fun RegisterForm(
             contentScale = ContentScale.Crop
         )
         Text(
-            text = "Đăng Ký",
+            text = "Đăng ký",
             fontSize = 32.sp,
+            fontFamily = PlayWriteFontFamily,
             color = Color.White,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
@@ -65,6 +67,7 @@ fun RegisterForm(
 
         Spacer(modifier = Modifier.height(24.dp))
         var username by remember { mutableStateOf("") }
+        var email by remember { mutableStateOf("") }
         var password by remember { mutableStateOf("") }
         var confirmPassword by remember { mutableStateOf("") }
         var passwordVisible by remember { mutableStateOf(false) }
@@ -78,6 +81,25 @@ fun RegisterForm(
                 .fillMaxWidth()
                 .height(60.dp),
             placeholder = { Text("Tên đăng nhập", color = Color.Black, fontSize = 16.sp) },
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White,
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent
+            ),
+            shape = RoundedCornerShape(8.dp)
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        TextField(
+            value = email,
+            onValueChange = { email = it },
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            placeholder = { Text("Email", color = Color.Black, fontSize = 16.sp) },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
             colors = TextFieldDefaults.colors(
                 focusedContainerColor = Color.White,
                 unfocusedContainerColor = Color.White,
@@ -167,11 +189,17 @@ fun RegisterForm(
         Button(
             onClick = {
                 when {
-                    username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
+                    username.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() -> {
                         scope.launch {
                             snackbarHostState.showSnackbar("Vui lòng điền đầy đủ thông tin")
                         }
                         errorMessage = null
+                    }
+                    !email.endsWith("@gmail.com") -> {
+                        errorMessage = "Email phải có định dạng @gmail.com"
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Email phải có định dạng @gmail.com")
+                        }
                     }
                     password != confirmPassword -> {
                         errorMessage = "Mật khẩu không khớp"
@@ -179,34 +207,64 @@ fun RegisterForm(
                             snackbarHostState.showSnackbar("Mật khẩu không khớp")
                         }
                     }
+                    password.length < 6 -> {
+                        errorMessage = "Mật khẩu phải có ít nhất 6 ký tự"
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Mật khẩu phải có ít nhất 6 ký tự")
+                        }
+                    }
                     else -> {
-                        val user = hashMapOf(
-                            "username" to username,
-                            "password" to password,
-                            "role" to "user",
-                            "email" to "", // Thêm các trường mặc định
-                            "phoneNumber" to "",
-                            "fullName" to "",
-                            "address" to ""
-                        )
-
-                        database.child(username).setValue(user)
-                            .addOnSuccessListener {
-                                // Lưu username vào SharedPreferences
-                                sharedPreferences.edit().putString("user_id", username).apply()
-
-                                errorMessage = null
+                        // Kiểm tra xem username đã tồn tại chưa
+                        database.child(username).get().addOnSuccessListener { snapshot ->
+                            if (snapshot.exists()) {
+                                errorMessage = "Tên đăng nhập đã tồn tại"
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Đăng ký thành công")
-                                    onRegisterSuccess()
+                                    snackbarHostState.showSnackbar("Tên đăng nhập đã tồn tại")
                                 }
+                            } else {
+                                // Đăng ký người dùng với Firebase Authentication
+                                auth.createUserWithEmailAndPassword(email, password)
+                                    .addOnCompleteListener { authTask ->
+                                        if (authTask.isSuccessful) {
+                                            // Lưu thông tin người dùng vào Realtime Database (không lưu mật khẩu)
+                                            val user = hashMapOf(
+                                                "username" to username,
+                                                "email" to email,
+                                                "role" to "user",
+                                                "phoneNumber" to "",
+                                                "fullName" to "",
+                                                "address" to ""
+                                            )
+
+                                            database.child(username).setValue(user)
+                                                .addOnSuccessListener {
+                                                    sharedPreferences.edit().putString("user_id", username).apply()
+                                                    errorMessage = null
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar("Đăng ký thành công")
+                                                        onRegisterSuccess()
+                                                    }
+                                                }
+                                                .addOnFailureListener { e ->
+                                                    errorMessage = "Lỗi lưu thông tin: ${e.message}"
+                                                    scope.launch {
+                                                        snackbarHostState.showSnackbar("Lỗi lưu thông tin: ${e.message}")
+                                                    }
+                                                }
+                                        } else {
+                                            errorMessage = "Đăng ký thất bại: ${authTask.exception?.message}"
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("Đăng ký thất bại: ${authTask.exception?.message}")
+                                            }
+                                        }
+                                    }
                             }
-                            .addOnFailureListener { e ->
-                                errorMessage = "Đăng ký thất bại: ${e.message}"
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Đăng ký thất bại: ${e.message}")
-                                }
+                        }.addOnFailureListener { e ->
+                            errorMessage = "Lỗi kiểm tra username: ${e.message}"
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Lỗi kiểm tra username: ${e.message}")
                             }
+                        }
                     }
                 }
             },

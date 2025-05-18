@@ -52,7 +52,6 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.firebase.database)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.activity)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -72,7 +71,7 @@ dependencies {
     implementation("androidx.compose.ui:ui-tooling:1.7.5") // Công cụ hỗ trợ UI trong Compose
     implementation("com.google.android.material:material:1.12.0") // Material Components của Google
     implementation("androidx.navigation:navigation-compose:2.7.7")
-    implementation("com.google.android.gms:play-services-base:18.1.0")
+    implementation("com.google.android.gms:play-services-base:18.5.0")
     implementation("com.google.firebase:firebase-database:20.3.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
@@ -81,5 +80,8 @@ dependencies {
     implementation("com.cloudinary:cloudinary-android:2.6.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.google.firebase:firebase-auth:23.0.0")
-    implementation("com.google.android.gms:play-services-auth:20.7.0")
+    implementation("com.google.android.gms:play-services-auth:21.1.0")
+    implementation("com.paypal.sdk:paypal-android-sdk:2.16.0")
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
+
 }

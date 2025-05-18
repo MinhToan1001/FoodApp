@@ -110,7 +110,7 @@ fun NumberRow(
             }
         }
         Text(
-            text = "${item.Price}",
+            text = "${item.Price}đ",
             color = colorResource(R.color.darkPurple),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,

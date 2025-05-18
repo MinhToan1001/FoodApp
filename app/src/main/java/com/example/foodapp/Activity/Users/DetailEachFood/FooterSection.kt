@@ -56,8 +56,8 @@ fun FooterSection(onAddToCartClick: () -> Unit, totalPrice: Double, modifier: Mo
                 tint = Color.White,
                 modifier = Modifier.size(20.dp)
             )
-            Spacer(modifier = Modifier.width(16.dp) )
-            Text("Thêm vào giỏ hàng", fontSize = 16.sp, color = Color.White)
+            Spacer(modifier = Modifier.width(20.dp) )
+            Text("Thêm", fontSize = 16.sp, color = Color.White)
         }
         Column(
             modifier = Modifier
@@ -70,9 +70,9 @@ fun FooterSection(onAddToCartClick: () -> Unit, totalPrice: Double, modifier: Mo
                 }
         ) {
             Text("Tổng tiền :", fontSize = 18.sp, color = colorResource(R.color.darkPurple))
-            val decimalFormet = DecimalFormat("#.00")
+            val decimalFormet = DecimalFormat("#")
             Text(
-                "$${decimalFormet.format(totalPrice)}",
+                "${decimalFormet.format(totalPrice)}đ",
                 fontSize = 18.sp,
                 fontWeight = FontWeight.Bold,
                 color = colorResource(R.color.darkPurple),
