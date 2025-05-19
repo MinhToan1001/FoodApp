@@ -81,7 +81,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("com.google.firebase:firebase-auth:23.0.0")
     implementation("com.google.android.gms:play-services-auth:21.1.0")
-    implementation("com.paypal.sdk:paypal-android-sdk:2.16.0")
     implementation("com.squareup.okhttp3:okhttp:4.9.3")
+
 
 }

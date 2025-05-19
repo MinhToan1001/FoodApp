@@ -1,11 +1,11 @@
 package com.example.foodapp.Activity.Splash
 
+import android.R.attr.padding
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -71,9 +71,10 @@ fun SplashScreen(
 ) {
     var showRegisterForm by remember { mutableStateOf(false) }
     var showLoginForm by remember { mutableStateOf(showLoginFormInitially) }
+    var showForgotPasswordForm by remember { mutableStateOf(false) } // Thêm trạng thái mới
 
     Box(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
     ) {
         Image(
@@ -83,35 +84,33 @@ fun SplashScreen(
             modifier = Modifier.fillMaxSize()
         )
         Column(
-            modifier = modifier
+            modifier = Modifier
                 .fillMaxSize(),
-            verticalArrangement = Arrangement.SpaceBetween, // Phân bố đều các thành phần
-            horizontalAlignment = Alignment.CenterHorizontally // Canh giữa theo chiều ngang
+            verticalArrangement = Arrangement.SpaceBetween,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (!showRegisterForm && !showLoginForm) {
-                // Logo và dòng chữ được đặt ở giữa khung hình
+            if (!showRegisterForm && !showLoginForm && !showForgotPasswordForm) {
+                // Logo và dòng chữ
                 Box(
                     modifier = Modifier
-                        .weight(0.8f) // Chiếm không gian để căn giữa dọc
+                        .weight(0.8f)
                         .fillMaxWidth(),
-                    contentAlignment = Alignment.Center // Canh giữa nội dung trong Box
+                    contentAlignment = Alignment.Center
                 ) {
                     ConstraintLayout {
                         val (logo, logoText) = createRefs()
-
                         Image(
                             painter = painterResource(R.drawable.logo),
                             contentDescription = null,
                             contentScale = ContentScale.Fit,
                             modifier = Modifier
-                                .size(300.dp) // Điều chỉnh kích thước logo nếu cần
+                                .size(300.dp)
                                 .constrainAs(logo) {
                                     top.linkTo(parent.top)
                                     start.linkTo(parent.start)
                                     end.linkTo(parent.end)
                                 }
                         )
-
                         Text(
                             text = "Bờm Restaurant",
                             fontSize = 30.sp,
@@ -127,7 +126,6 @@ fun SplashScreen(
                         )
                     }
                 }
-
                 // Văn bản chào mừng và nút
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
@@ -172,8 +170,16 @@ fun SplashScreen(
                     onBack = { showLoginForm = false },
                     snackbarHostState = snackbarHostState,
                     scope = scope,
-                    onForgotPassword = { showLoginForm = false }
-
+                    onForgotPassword = {
+                        showLoginForm = false
+                        showForgotPasswordForm = true // Chuyển sang ForgotPasswordScreen
+                    }
+                )
+            } else if (showForgotPasswordForm) {
+                ForgotPasswordScreen(
+                    onBack = { showForgotPasswordForm = false; showLoginForm = true }, // Quay lại LoginForm
+                    snackbarHostState = snackbarHostState,
+                    scope = scope
                 )
             }
         }

@@ -22,8 +22,7 @@ import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
 import com.example.foodapp.Domain.FoodModel
 import com.example.foodapp.R
-
-
+import java.text.DecimalFormat
 
 @Composable
 fun NumberRow(
@@ -109,18 +108,21 @@ fun NumberRow(
                 )
             }
         }
+        val decimalFormat = DecimalFormat("#,###")
+        val formattedPrice = decimalFormat.format(item.Price)
+
         Text(
-            text = "${item.Price}đ",
+            text = "$formattedPrice đ",
             color = colorResource(R.color.darkPurple),
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier
-                .padding(horizontal = 16.dp)
                 .constrainAs(price) {
                     end.linkTo(buttons.start)
                     top.linkTo(parent.top)
                     bottom.linkTo(parent.bottom)
                 }
         )
+
     }
 }

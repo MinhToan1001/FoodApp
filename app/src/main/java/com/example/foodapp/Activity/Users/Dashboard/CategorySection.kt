@@ -24,7 +24,11 @@ import com.example.foodapp.Domain.CategoryModel
 import com.example.foodapp.R
 
 @Composable
-fun CategorySection(categories: List<CategoryModel>, showCategoryLoading: Boolean) {
+fun CategorySection(
+    categories: List<CategoryModel>,
+    showCategoryLoading: Boolean,
+    searchQuery: String = "" // Add searchQuery parameter
+) {
     val context = LocalContext.current
 
     Column(
@@ -33,7 +37,7 @@ fun CategorySection(categories: List<CategoryModel>, showCategoryLoading: Boolea
             .padding(8.dp)
     ) {
         Text(
-            text = "Chọn danh mục",
+            text = "Danh mục",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
@@ -56,7 +60,7 @@ fun CategorySection(categories: List<CategoryModel>, showCategoryLoading: Boolea
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "Không có danh mục nào",
+                    text = if (searchQuery.isNotEmpty()) "Không tìm thấy danh mục" else "Không có danh mục nào",
                     fontSize = 16.sp,
                     color = colorResource(R.color.darkPurple)
                 )

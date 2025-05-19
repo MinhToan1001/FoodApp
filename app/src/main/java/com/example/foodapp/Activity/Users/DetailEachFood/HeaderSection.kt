@@ -160,7 +160,7 @@ private fun FavariteButton(
     modifier: Modifier = Modifier
 ) {
     Image(
-        painter = painterResource(if (isFavorite) R.drawable.btn_3 else R.drawable.fav_icon),
+        painter = painterResource(if (isFavorite) R.drawable.love_icon else R.drawable.fav_icon),
         contentDescription = "Yêu thích",
         modifier = modifier
             .padding(end = 16.dp, top = 48.dp)

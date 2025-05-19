@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.constraintlayout.compose.ConstraintLayout
+import com.example.foodapp.Activity.Splash.PlayWriteFontFamily
 import com.example.foodapp.R
 
 @Composable
@@ -51,7 +52,7 @@ fun TopBar() {
             modifier = Modifier
                 .constrainAs(name) {
                     top.linkTo(parent.top)
-                    start.linkTo(settings.end)
+                    start.linkTo(parent.start)
                     end.linkTo(parent.end)
                 },
             horizontalAlignment = Alignment.CenterHorizontally
@@ -59,17 +60,15 @@ fun TopBar() {
             Text(
                 text = buildAnnotatedString {
                     withStyle(style = SpanStyle(color = Color.Red)) {
-                        append("TTK")
-                    }
-                    withStyle(style = SpanStyle(color = Color.Black)) {
-                        append("FOOD")
+                        append("Bờm")
                     }
                 },
                 fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
+                fontSize = 20.sp,
+                fontFamily = PlayWriteFontFamily
             )
             Text(
-                text = "Online Shop",
+                text = "Restaurant",
                 color = Color.DarkGray,
                 fontSize = 14.sp
             )

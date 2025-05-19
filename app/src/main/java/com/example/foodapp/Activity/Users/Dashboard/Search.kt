@@ -8,14 +8,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.Text
-import androidx.compose.material.TextField
-import androidx.compose.material.TextFieldDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
@@ -27,35 +29,68 @@ import androidx.compose.ui.unit.dp
 import com.example.foodapp.R
 
 @Composable
-@Preview
-fun Search() {
+fun Search(
+    onSearchQueryChanged: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
     var text by rememberSaveable { mutableStateOf("") }
-    TextField(value = text, onValueChange = {text=it},
+    TextField(
+        value = text,
+        onValueChange = { newText ->
+            text = newText
+            onSearchQueryChanged(newText)
+        },
         label = {
             Text(
-                text = "Bạn muốn ăn gì hôm nay",
+                text = "Bạn muốn ăn gì hôm nay?",
                 fontStyle = FontStyle.Italic,
                 fontWeight = FontWeight.SemiBold,
                 color = Color.DarkGray
             )
         },
         trailingIcon = {
-            Image(painter = painterResource(R.drawable.search),
-                contentDescription = null,
-                modifier = Modifier.size(22.dp)
+            if (text.isNotEmpty()) {
+                IconButton(onClick = {
+                    text = ""
+                    onSearchQueryChanged("")
+                }) {
+                    Icon(
+                        painter = painterResource(R.drawable.xacnhan), // Ensure ic_clear exists
+                        contentDescription = "Clear search",
+                        modifier = Modifier.size(22.dp),
+                        tint = Color.DarkGray
+                    )
+                }
+            } else {
+                Image(
+                    painter = painterResource(R.drawable.search),
+                    contentDescription = null,
+                    modifier = Modifier.size(22.dp)
                 )
-        }, shape = RoundedCornerShape(10.dp),
-        colors = TextFieldDefaults.outlinedTextFieldColors(
-            backgroundColor = colorResource(R.color.grey),
-            focusedBorderColor = Color.Transparent,
-            unfocusedLabelColor = Color.Transparent,
-            textColor = Color.DarkGray,
-            unfocusedBorderColor = Color.Transparent
+            }
+        },
+        shape = RoundedCornerShape(10.dp),
+        colors = TextFieldDefaults.colors(
+            focusedContainerColor = colorResource(R.color.grey),
+            unfocusedContainerColor = colorResource(R.color.grey),
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent,
+            disabledIndicatorColor = Color.Transparent,
+            focusedTextColor = Color.DarkGray,
+            unfocusedTextColor = Color.DarkGray,
+            focusedPlaceholderColor = Color.Transparent,
+            unfocusedPlaceholderColor = Color.Transparent
         ),
-         modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(16.dp)
             .height(50.dp)
             .background(colorResource(R.color.grey), CircleShape)
     )
+}
+
+@Preview
+@Composable
+fun SearchPreview() {
+    Search(onSearchQueryChanged = {})
 }

@@ -1,6 +1,8 @@
 package com.example.foodapp.Activity.Order
 
+import android.app.Activity
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,21 +21,21 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.foodapp.Activity.Splash.SplashMainActivity
 import com.example.foodapp.R
+import com.example.foodapp.utils.SessionUtils
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import java.text.DecimalFormat
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import java.util.*
 
 @Composable
 fun OrderScreen() {
     val context = LocalContext.current
-    val sharedPreferences = context.getSharedPreferences("user_prefs", Context.MODE_PRIVATE)
-    val userId = sharedPreferences.getString("user_id", "") ?: ""
+    val userId = SessionUtils.getUserId(context)
     val database = FirebaseDatabase.getInstance().getReference("orders")
 
     var orders by remember { mutableStateOf(listOf<Order>()) }
@@ -41,39 +43,63 @@ fun OrderScreen() {
 
     LaunchedEffect(userId) {
         if (userId.isNotEmpty()) {
+            Log.d("OrderScreen", "Querying orders for userId: $userId")
             FirebaseDatabase.getInstance().getReference("users")
                 .child(userId)
                 .child("fullName")
                 .addListenerForSingleValueEvent(object : ValueEventListener {
                     override fun onDataChange(snapshot: DataSnapshot) {
                         userFullName = snapshot.getValue(String::class.java) ?: ""
+                        Log.d("OrderScreen", "Fetched fullName: $userFullName")
                     }
-
                     override fun onCancelled(error: DatabaseError) {
-                        Log.e("OrderScreen", "Lỗi lấy họ tên: ${error.message}")
+                        Log.e("OrderScreen", "Error fetching fullName: ${error.message}")
                     }
                 })
-        }
-    }
 
-    LaunchedEffect(Unit) {
-        database.orderByChild("userId").equalTo(userId)
-            .addValueEventListener(object : ValueEventListener {
-                override fun onDataChange(snapshot: DataSnapshot) {
-                    val orderList = mutableListOf<Order>()
-                    for (data in snapshot.children) {
-                        val order = data.getValue(Order::class.java)?.copy(orderId = data.key)
-                        if (order != null) {
-                            orderList.add(order)
+            // Force initial refresh
+            database.orderByChild("userId").equalTo(userId)
+                .addListenerForSingleValueEvent(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        Log.d("OrderScreen", "Initial fetch: ${snapshot.childrenCount} orders")
+                        val orderList = mutableListOf<Order>()
+                        for (data in snapshot.children) {
+                            val order = data.getValue(Order::class.java)?.copy(orderId = data.key)
+                            if (order != null) {
+                                orderList.add(order)
+                            }
                         }
+                        orders = orderList.sortedByDescending { it.timestamp }
                     }
-                    orders = orderList.sortedByDescending { it.timestamp }
-                }
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("OrderScreen", "Initial fetch error: ${error.message}")
+                    }
+                })
 
-                override fun onCancelled(error: DatabaseError) {
-                    Log.e("OrderScreen", "Lỗi lấy đơn hàng: ${error.message}")
-                }
-            })
+            // Persistent listener for real-time updates
+            database.orderByChild("userId").equalTo(userId)
+                .addValueEventListener(object : ValueEventListener {
+                    override fun onDataChange(snapshot: DataSnapshot) {
+                        Log.d("OrderScreen", "Found ${snapshot.childrenCount} orders")
+                        val orderList = mutableListOf<Order>()
+                        for (data in snapshot.children) {
+                            val order = data.getValue(Order::class.java)?.copy(orderId = data.key)
+                            if (order != null) {
+                                Log.d("OrderScreen", "Order: ${order.orderId}, Status: ${order.status}")
+                                orderList.add(order)
+                            }
+                        }
+                        orders = orderList.sortedByDescending { it.timestamp }
+                    }
+                    override fun onCancelled(error: DatabaseError) {
+                        Log.e("OrderScreen", "Error fetching orders: ${error.message}")
+                    }
+                })
+        } else {
+            Log.e("OrderScreen", "User ID is empty, redirecting to SplashMainActivity")
+            context.startActivity(Intent(context, SplashMainActivity::class.java))
+            (context as? Activity)?.finish()
+        }
     }
 
     LazyColumn(
@@ -134,7 +160,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                         ratingsMap[itemTitle] = ratingData
                                     }
                                 } catch (e: Exception) {
-                                    Log.e("OrderItem", "Lỗi ánh xạ đánh giá tại $itemTitle: ${e.message}")
+                                    Log.e("OrderItem", "Error mapping rating at $itemTitle: ${e.message}")
                                 }
                             }
                         }
@@ -143,7 +169,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                 }
 
                 override fun onCancelled(error: DatabaseError) {
-                    Log.e("OrderItem", "Lỗi lấy đánh giá: ${error.message}")
+                    Log.e("OrderItem", "Error fetching ratings: ${error.message}")
                 }
             })
     }
@@ -152,7 +178,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp)
-            .background(colorResource(R.color.grey), shape = RoundedCornerShape(10.dp))
+            .background(colorResource(com.example.foodapp.R.color.grey), shape = RoundedCornerShape(10.dp))
             .padding(8.dp)
     ) {
         Text(
@@ -252,7 +278,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .background(Color.Red, shape = RoundedCornerShape(8.dp))
-                    .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)), // Bỏ bóng
+                    .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)),
                 contentPadding = PaddingValues(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Red,
@@ -286,7 +312,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                     .fillMaxWidth()
                     .padding(top = 8.dp)
                     .background(Color.Green, shape = RoundedCornerShape(8.dp))
-                    .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)), // Bỏ bóng
+                    .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)),
                 contentPadding = PaddingValues(16.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Green,
@@ -312,10 +338,10 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                             .fillMaxWidth()
                             .padding(top = 8.dp)
                             .background(Color(0xFFFF6200), shape = RoundedCornerShape(8.dp))
-                            .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)), // Bỏ bóng
+                            .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)),
                         contentPadding = PaddingValues(16.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF6200), // Màu cam
+                            containerColor = Color(0xFFFF6200),
                             contentColor = Color.White
                         )
                     ) {
@@ -427,7 +453,6 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                             )
                             Log.d("OrderItem", "Chuẩn bị lưu đánh giá: $newRating")
 
-                            // Lưu vào ratings
                             FirebaseDatabase.getInstance().getReference("ratings")
                                 .push()
                                 .setValue(newRating)
@@ -435,12 +460,10 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                     Log.d("OrderItem", "Lưu đánh giá vào ratings thành công")
                                 }
                                 .addOnFailureListener { e ->
-                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào ratings: ${e.message}", e)
+                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào ratings: ${e.message}")
                                     errorMessage = "Lỗi lưu đánh giá: Vui lòng thử lại"
-                                    return@addOnFailureListener
                                 }
 
-                            // Lưu vào orders và cập nhật userRatings
                             FirebaseDatabase.getInstance().getReference("orders")
                                 .child(order.orderId)
                                 .child("ratings")
@@ -449,11 +472,9 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                 .setValue(newRating)
                                 .addOnSuccessListener {
                                     Log.d("OrderItem", "Lưu đánh giá vào orders thành công")
-                                    // Cập nhật userRatings thủ công
                                     userRatings = userRatings.toMutableMap().apply {
                                         put(selectedItem!!.title, newRating)
                                     }
-                                    // Đặt lại trạng thái
                                     showRatingDialog = false
                                     selectedItem = null
                                     rating = 0
@@ -461,17 +482,17 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                     errorMessage = ""
                                 }
                                 .addOnFailureListener { e ->
-                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào orders: ${e.message}", e)
+                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào orders: ${e.message}")
                                     errorMessage = "Lỗi lưu đánh giá: Vui lòng thử lại"
                                 }
                         },
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .background(Color(0xFFFF6200), shape = RoundedCornerShape(8.dp))
-                            .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)), // Bỏ bóng
+                            .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)),
                         contentPadding = PaddingValues(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFFF6200), // Màu cam
+                            containerColor = Color(0xFFFF6200),
                             contentColor = Color.White
                         )
                     ) {
@@ -492,10 +513,10 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                         },
                         modifier = Modifier
                             .background(Color(0xFFB0BEC5), shape = RoundedCornerShape(8.dp))
-                            .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)), // Bỏ bóng
+                            .shadow(elevation = 0.dp, shape = RoundedCornerShape(8.dp)),
                         contentPadding = PaddingValues(12.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFB0BEC5), // Màu bạc
+                            containerColor = Color(0xFFB0BEC5),
                             contentColor = Color.White
                         )
                     ) {

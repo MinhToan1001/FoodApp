@@ -36,7 +36,7 @@ fun GetStartedButton(
                 .height(50.dp)
         ) {
             Text(
-                text = "Đăng kí",
+                text = "Đăng ký",
                 fontSize = 16.sp,
                 color = Color.White
             )

@@ -50,6 +50,7 @@ fun RegisterForm(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
+                .padding(top = 20.dp)
                 .height(280.dp),
             contentScale = ContentScale.Crop
         )

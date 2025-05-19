@@ -15,12 +15,15 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import com.example.foodapp.Domain.FoodModel
 import com.example.foodapp.Helper.FavoriteManager
 import com.example.foodapp.R
+import com.example.foodapp.ui.theme.FoodAppTheme
+import java.text.DecimalFormat
 
 @Composable
 fun FavoriteScreen() {
@@ -100,19 +103,37 @@ fun FavoriteItem(item: FoodModel, onRemove: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = colorResource(R.color.darkPurple)
                 )
+                val format = DecimalFormat("#,###")
+                val priceFormatted = format.format(item.Price)
                 Text(
-                    text = "${item.Price}đ",
+                    text = "$priceFormatted đ",
                     fontSize = 14.sp,
-                    color = colorResource(R.color.darkPurple)
+                    color = colorResource(R.color.red)
                 )
             }
         }
         Image(
-            painter = painterResource(R.drawable.btn_3),
+            painter = painterResource(R.drawable.cross),
             contentDescription = "Xóa khỏi yêu thích",
             modifier = Modifier
-                .size(24.dp)
+                .size(30.dp)
                 .clickable { onRemove() }
+        )
+    }
+}
+
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewFavoriteItem() {
+    FoodAppTheme {
+        FavoriteItem(
+            item = FoodModel(
+                Title = "Bánh mì chảo",
+                Price = 45000.0,
+                ImagePath = "https://via.placeholder.com/150"
+            ),
+            onRemove = {}
         )
     }
 }

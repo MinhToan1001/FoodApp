@@ -20,11 +20,13 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat.startActivity
 import coil.compose.AsyncImage
 import com.example.foodapp.Activity.DetailEachFood.DetailEachFoodActivity
+import com.example.foodapp.Activity.Splash.PlayWriteFontFamily
 import com.example.foodapp.Domain.FoodModel
 import com.example.foodapp.R
 import com.google.firebase.database.DataSnapshot
@@ -98,7 +100,7 @@ fun FoodImage(item: FoodModel) {
         model = item.ImagePath,
         contentDescription = "Hình ảnh món ${item.Title}",
         modifier = Modifier
-            .size(100.dp)
+            .size(120.dp)
             .clip(RoundedCornerShape(10.dp))
             .background(colorResource(R.color.grey), shape = RoundedCornerShape(10.dp)),
         contentScale = ContentScale.Crop
@@ -109,14 +111,14 @@ fun FoodImage(item: FoodModel) {
 fun RowScope.FoodDetails(item: FoodModel, averageRating: Double) {
     Column(
         modifier = Modifier
-            .padding(start = 8.dp, end = 8.dp)
+            .padding(start = 12.dp, end = 8.dp)
             .weight(1f)
             .align(Alignment.CenterVertically)
     ) {
         Text(
             text = item.Title,
             color = colorResource(R.color.darkPurple),
-            fontSize = 16.sp,
+            fontSize = 20.sp,
             fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
@@ -126,9 +128,10 @@ fun RowScope.FoodDetails(item: FoodModel, averageRating: Double) {
         RatingBarRow(averageRating)
         QuantityRow(item.numberInCart)
         Text(
-            text = formatPrice(item.Price) + " VNĐ",
-            color = colorResource(R.color.darkPurple),
-            fontSize = 16.sp,
+            text = formatPrice(item.Price) + "đ",
+            color = colorResource(R.color.red),
+            fontSize = 18.sp,
+            fontFamily = PlayWriteFontFamily,
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(top = 4.dp)
         )
@@ -182,7 +185,7 @@ fun QuantityRow(quantity: Int) {
         modifier = Modifier.padding(vertical = 4.dp)
     ) {
         Text(
-            text = "Kho: $quantity sản phẩm",
+            text = "SL: $quantity",
             style = MaterialTheme.typography.body1
         )
     }
@@ -200,3 +203,37 @@ data class Rating(
     val fullName: String = "",
     val timestamp: Long = 0L
 )
+@Preview(showBackground = true)
+@Composable
+fun PreviewItemsList() {
+    val fakeItems = listOf(
+        FoodModel(
+            Title = "Phở Bò",
+            Description = "Phở bò truyền thống ngon tuyệt",
+            Price = 50000.0,
+            ImagePath = "https://via.placeholder.com/150",
+            Star = 4.5,
+            TimeValue = 15,
+            numberInCart = 10
+        ),
+        FoodModel(
+            Title = "Bún Chả",
+            Description = "Bún chả Hà Nội đậm đà",
+            Price = 45000.0,
+            ImagePath = "https://via.placeholder.com/150",
+            Star = 4.0,
+            TimeValue = 20,
+            numberInCart = 8
+        ),
+        FoodModel(
+            Title = "Cơm Tấm",
+            Description = "Cơm tấm sườn bì chả",
+            Price = 55000.0,
+            ImagePath = "https://via.placeholder.com/150",
+            Star = 4.8,
+            TimeValue = 12,
+            numberInCart = 5
+        )
+    )
+    ItemsList(items = fakeItems)
+}

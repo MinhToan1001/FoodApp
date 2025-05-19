@@ -58,6 +58,7 @@ fun LoginForm(
             contentDescription = null,
             modifier = Modifier
                 .fillMaxWidth()
+                .padding( top = 80.dp)
                 .height(280.dp),
             contentScale = ContentScale.Crop
         )

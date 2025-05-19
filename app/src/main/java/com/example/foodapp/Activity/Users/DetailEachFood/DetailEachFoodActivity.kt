@@ -242,7 +242,7 @@ fun FoodDescriptionSection(description: String) {
             .padding(16.dp)
     ) {
         Text(
-            text = "Details",
+            text = "Mô tả",
             fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             color = colorResource(R.color.darkPurple)
