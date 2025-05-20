@@ -19,7 +19,7 @@ fun OrderManagementScreen(
     selectedIndex: Int,
     onIndexChange: (Int) -> Unit
 ) {
-    val statuses = listOf("Chưa xác nhận", "Đã xác nhận", "Đang giao hàng", "Đã giao hàng")
+    val statuses = listOf("Chưa xác nhận", "Đã xác nhận", "Đang giao hàng", "Đã giao hàng", "Hủy đơn hàng")
 
     Scaffold(
         topBar = { TopBar() },

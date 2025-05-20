@@ -6,7 +6,10 @@ import android.content.Intent
 import android.util.Log
 import android.widget.Toast
 import androidx.browser.customtabs.CustomTabsIntent
+import com.example.foodapp.Activity.Cart.DeliveryInfoBox
+import com.example.foodapp.Activity.Cart.calculatorCart
 import com.example.foodapp.Activity.Splash.SplashMainActivity
+import com.example.foodapp.Domain.FoodModel
 import com.example.foodapp.utils.SessionUtils
 import com.google.firebase.database.FirebaseDatabase
 import com.uilover.project2142.Helper.ManagmentCart
@@ -59,7 +62,7 @@ object VNPayUtils {
             params["vnp_ReturnUrl"] = vnp_ReturnUrl
             params["vnp_TxnRef"] = vnp_TxnRef
 
-            // Save order temporarily
+            // Save order with VNPay details and imageUrl
             val managmentCart = ManagmentCart(context)
             val orderRef = FirebaseDatabase.getInstance().getReference("orders").push()
             managmentCart.getListCart { cartItems ->
@@ -69,12 +72,14 @@ object VNPayUtils {
                         mapOf(
                             "title" to it.Title,
                             "price" to it.Price,
-                            "quantity" to it.numberInCart
+                            "quantity" to it.numberInCart,
+                            "imageUrl" to it.ImagePath
                         )
                     },
                     "totalAmount" to (cartItems.sumOf { it.Price * it.numberInCart } + 0.0 + 10.0),
-                    "status" to "Đang xử lý thanh toán",
+                    "status" to "Chưa xác nhận",
                     "paymentMethod" to "VNPay",
+                    "paymentStatus" to "Đã thanh toán", // Sửa ở đây
                     "txnRef" to vnp_TxnRef,
                     "timestamp" to System.currentTimeMillis()
                 )
@@ -91,7 +96,6 @@ object VNPayUtils {
             val paymentUrl = vnp_Url + "?" + params.entries.joinToString("&") { "${it.key}=${URLEncoder.encode(it.value, "UTF-8")}" }
             Log.d("VNPayDebug", "Payment URL: $paymentUrl")
 
-            // Open Chrome Custom Tabs
             val customTabsIntent = CustomTabsIntent.Builder()
                 .setShowTitle(true)
                 .build()
@@ -117,11 +121,15 @@ object VNPayUtils {
                 override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
                     if (snapshot.exists()) {
                         for (data in snapshot.children) {
-                            data.ref.child("status").setValue("Chưa xác nhận (Đã thanh toán)")
+                            val updates = mapOf(
+                                "status" to "Chưa xác nhận",
+                                "paymentStatus" to "Đã thanh toán" // Thêm cập nhật paymentStatus
+                            )
+                            data.ref.updateChildren(updates)
                                 .addOnSuccessListener {
                                     val managmentCart = ManagmentCart(context)
                                     managmentCart.clearCart()
-                                    Log.i("OrderSuccess", "Order updated successfully")
+                                    Log.i("OrderSuccess", "Order updated successfully: status=Chưa xác nhận, paymentStatus=Đã thanh toán")
                                     onComplete()
                                 }
                                 .addOnFailureListener { e ->
@@ -149,5 +157,46 @@ object VNPayUtils {
         mac.init(secretKeySpec)
         val bytes = mac.doFinal(data.toByteArray())
         return bytes.joinToString("") { String.format("%02x", it) }
+    }
+    fun updateOrderStatusAfterCancellation(context: Context, txnRef: String, userId: String, onComplete: () -> Unit, onError: (String) -> Unit) {
+        if (userId.isEmpty()) {
+            Log.w("VNPayUtils", "User ID empty, cannot update order")
+            onError("Vui lòng đăng nhập để tiếp tục")
+            context.startActivity(Intent(context, SplashMainActivity::class.java))
+            (context as? Activity)?.finish()
+            return
+        }
+
+        FirebaseDatabase.getInstance().getReference("orders")
+            .orderByChild("txnRef").equalTo(txnRef)
+            .addListenerForSingleValueEvent(object : com.google.firebase.database.ValueEventListener {
+                override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
+                    if (snapshot.exists()) {
+                        for (data in snapshot.children) {
+                            val updates = mapOf(
+                                "status" to "Đã hủy",
+                                "paymentStatus" to "Đã hủy"
+                            )
+                            data.ref.updateChildren(updates)
+                                .addOnSuccessListener {
+                                    Log.i("OrderCancel", "Order updated to canceled successfully")
+                                    onComplete()
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("OrderCancelError", "Error updating order to canceled: ${e.message}")
+                                    onError("Lỗi cập nhật trạng thái đơn hàng: ${e.message}")
+                                }
+                        }
+                    } else {
+                        Log.e("OrderCancelError", "Order not found for txnRef: $txnRef")
+                        onError("Không tìm thấy đơn hàng")
+                    }
+                }
+
+                override fun onCancelled(error: com.google.firebase.database.DatabaseError) {
+                    Log.e("OrderCancelError", "Error querying order: ${error.message}")
+                    onError("Lỗi truy vấn đơn hàng: ${error.message}")
+                }
+            })
     }
 }

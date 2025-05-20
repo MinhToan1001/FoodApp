@@ -48,10 +48,13 @@ fun OrderListByStatusScreen(
     }
 
     val filteredOrders = orders.filter {
-        if (status == "Chưa xác nhận") {
-            it.status == "Chưa xác nhận" || it.status == "Đang chờ xử lý"
-        } else {
-            it.status == status
+        when (status) {
+            "Chưa xác nhận" -> {
+                it.status == "Chưa xác nhận" ||
+                        it.status == "Đang chờ xử lý" ||
+                        it.status == "Chưa xác nhận (Đã thanh toán)"
+            }
+            else -> it.status == status
         }
     }
 
@@ -155,14 +158,16 @@ fun AdminOrderItem(order: Order) {
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(top = 8.dp)
         )
+        // Display order status above payment status
         Text(
-            text = "Trạng thái: ${order.status}",
+            text = "Trạng thái: ${if (order.status == "Chưa xác nhận (Đã thanh toán)") "Chưa xác nhận" else order.status}",
             fontSize = 14.sp,
             color = when (order.status) {
-                "Chưa xác nhận", "Đang chờ xử lý" -> Color.Red
+                "Chưa xác nhận", "Chưa xác nhận (Đã thanh toán)" -> Color.Red
                 "Đã xác nhận" -> Color.Blue
                 "Đang giao hàng" -> Color(0xFFFFA500)
                 "Đã giao hàng" -> Color.Green
+                "Hủy đơn hàng" -> Color.Gray
                 else -> Color.Gray
             },
             modifier = Modifier.padding(top = 4.dp)
@@ -170,11 +175,15 @@ fun AdminOrderItem(order: Order) {
         Text(
             text = "Thanh toán: ${order.paymentStatus}",
             fontSize = 14.sp,
-            color = if (order.paymentStatus == "Đã thanh toán") Color.Green else Color.Red,
+            color = when (order.paymentStatus) {
+                "Đã thanh toán" -> Color.Green
+                "Thanh toán khi nhận hàng" -> Color(0xFFFFA500)
+                else -> Color.Red
+            },
             modifier = Modifier.padding(top = 4.dp)
         )
 
-        if (order.status != "Đã giao hàng") {
+        if (order.status != "Đã giao hàng" && order.status != "Hủy đơn hàng") {
             Button(
                 onClick = { expanded = true },
                 modifier = Modifier
@@ -187,13 +196,13 @@ fun AdminOrderItem(order: Order) {
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
-                val statusOptions = when (order.status) {
-                    "Chưa xác nhận", "Đang chờ xử lý" -> listOf("Đã xác nhận")
-                    "Đã xác nhận" -> listOf("Đang giao hàng")
-                    "Đang giao hàng" -> listOf("Đã giao hàng")
-                    else -> emptyList()
-                }
-                statusOptions.forEach { newStatus ->
+                val allStatusOptions = listOf(
+                    "Chưa xác nhận",
+                    "Đã xác nhận",
+                    "Đang giao hàng",
+                    "Hủy đơn hàng"
+                ).filter { it != order.status }
+                allStatusOptions.forEach { newStatus ->
                     DropdownMenuItem(
                         onClick = {
                             order.orderId?.let { id ->

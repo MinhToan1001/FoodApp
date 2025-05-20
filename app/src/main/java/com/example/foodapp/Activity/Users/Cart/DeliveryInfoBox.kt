@@ -1,6 +1,7 @@
 package com.example.foodapp.Activity.Cart
 
 import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -19,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.example.foodapp.Domain.FoodModel
 import com.example.foodapp.R
 import com.google.firebase.database.FirebaseDatabase
@@ -29,6 +31,7 @@ fun DeliveryInfoBox(
     cartItems: ArrayList<FoodModel>,
     totalAmount: Double,
     managmentCart: ManagmentCart,
+    navController: NavController?, // Thêm navController làm tham số
     onOrderPlaced: () -> Unit,
     onVNPayPayment: (Double) -> Unit
 ) {
@@ -58,8 +61,16 @@ fun DeliveryInfoBox(
                     initialEmail = userProfile.email
                     initialPhoneNumber = userProfile.phoneNumber
                     initialAddress = userProfile.address
+                } else {
+                    Log.w("DeliveryInfoBox", "User profile not found for userId: $userId")
                 }
+            }.addOnFailureListener { exception ->
+                Log.e("DeliveryInfoBox", "Error fetching user profile: ${exception.message}")
+                errorMessage = "Lỗi tải thông tin người dùng: ${exception.message}"
             }
+        } else {
+            Log.w("DeliveryInfoBox", "User ID is empty")
+            errorMessage = "Vui lòng đăng nhập lại"
         }
     }
 
@@ -144,6 +155,10 @@ fun DeliveryInfoBox(
                 Button(
                     onClick = {
                         when {
+                            userId.isEmpty() -> {
+                                errorMessage = "Vui lòng đăng nhập để đặt hàng"
+                                Log.e("DeliveryInfoBox", "User ID is empty")
+                            }
                             email.isEmpty() -> {
                                 errorMessage = "Vui lòng nhập email, nhấn vào phần địa chỉ để cập nhật"
                                 showForm = true
@@ -156,7 +171,9 @@ fun DeliveryInfoBox(
                                 errorMessage = "Vui lòng nhập địa chỉ, nhấn vào phần địa chỉ để cập nhật"
                                 showForm = true
                             }
-                            selectedPaymentMethod == null -> errorMessage = "Vui lòng chọn phương thức thanh toán"
+                            selectedPaymentMethod == null -> {
+                                errorMessage = "Vui lòng chọn phương thức thanh toán"
+                            }
                             else -> {
                                 val updates = mapOf(
                                     "email" to email,
@@ -164,6 +181,13 @@ fun DeliveryInfoBox(
                                     "address" to address
                                 )
                                 database.child(userId).updateChildren(updates)
+                                    .addOnSuccessListener {
+                                        Log.d("DeliveryInfoBox", "User profile updated successfully")
+                                    }
+                                    .addOnFailureListener { exception ->
+                                        Log.e("DeliveryInfoBox", "Error updating user profile: ${exception.message}")
+                                        errorMessage = "Lỗi cập nhật thông tin: ${exception.message}"
+                                    }
 
                                 if (selectedPaymentMethod == "Payment") {
                                     onVNPayPayment(totalAmount)
@@ -175,18 +199,31 @@ fun DeliveryInfoBox(
                                             mapOf(
                                                 "title" to it.Title,
                                                 "price" to it.Price,
-                                                "quantity" to it.numberInCart
+                                                "quantity" to it.numberInCart,
+                                                "imageUrl" to it.ImagePath
                                             )
                                         },
                                         "totalAmount" to totalAmount,
-                                        "status" to "Chưa xác nhận (COD)",
+                                        "status" to "Chưa xác nhận",
                                         "paymentMethod" to "COD",
+                                        "paymentStatus" to "Thanh toán khi nhận hàng",
                                         "timestamp" to System.currentTimeMillis()
                                     )
                                     orderRef.setValue(order).addOnSuccessListener {
+                                        Log.d("DeliveryInfoBox", "Order placed successfully, orderId: ${orderRef.key}")
                                         managmentCart.clearCart()
                                         onOrderPlaced()
+                                        if (navController != null) {
+                                            navController.navigate("order") {
+                                                popUpTo(navController.graph.startDestinationId) { inclusive = false }
+                                                launchSingleTop = true
+                                            }
+                                        } else {
+                                            Log.e("DeliveryInfoBox", "NavController is null, cannot navigate to order")
+                                            errorMessage = "Lỗi hệ thống, vui lòng thử lại"
+                                        }
                                     }.addOnFailureListener { exception ->
+                                        Log.e("DeliveryInfoBox", "Error placing order: ${exception.message}")
                                         errorMessage = "Lỗi khi đặt hàng: ${exception.message}"
                                     }
                                 }
@@ -274,10 +311,17 @@ fun DeliveryInfoBox(
                             "address" to address
                         )
                         database.child(userId).updateChildren(updates)
-                        initialEmail = email
-                        initialPhoneNumber = phoneNumber
-                        initialAddress = address
-                        showForm = false
+                            .addOnSuccessListener {
+                                Log.d("DeliveryInfoBox", "User profile updated successfully")
+                                initialEmail = email
+                                initialPhoneNumber = phoneNumber
+                                initialAddress = address
+                                showForm = false
+                            }
+                            .addOnFailureListener { exception ->
+                                Log.e("DeliveryInfoBox", "Error updating user profile: ${exception.message}")
+                                errorMessage = "Lỗi cập nhật thông tin: ${exception.message}"
+                            }
                     },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.orange))

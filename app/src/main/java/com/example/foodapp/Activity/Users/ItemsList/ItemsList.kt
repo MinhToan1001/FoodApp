@@ -1,6 +1,7 @@
 package com.example.foodapp.Activity.ItemsList
 
 import android.content.Intent
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -50,24 +51,25 @@ fun ItemsList(items: List<FoodModel>) {
 fun Items(item: FoodModel, index: Int) {
     val isEvenRow = index % 2 == 0
     val context = LocalContext.current
-    var averageRating by remember { mutableStateOf(item.Star) }
+    var averageRating by remember { mutableStateOf(item.Star) } // Khởi tạo với item.Star
 
-    // Lấy dữ liệu đánh giá từ Firebase
+    // Lấy dữ liệu đánh giá từ "ratings" thay vì "products"
     LaunchedEffect(item.Title) {
-        FirebaseDatabase.getInstance().getReference("products")
-            .child(item.Title)
-            .child("ratings")
+        FirebaseDatabase.getInstance().getReference("ratings")
             .addValueEventListener(object : ValueEventListener {
                 override fun onDataChange(snapshot: DataSnapshot) {
                     val ratings = snapshot.children.mapNotNull { it.getValue(Rating::class.java) }
-                    averageRating = if (ratings.isNotEmpty()) {
-                        ratings.map { it.stars }.average()
+                    val productRatings = ratings.filter { it.productTitle == item.Title }
+                    averageRating = if (productRatings.isNotEmpty()) {
+                        productRatings.map { it.stars.toDouble() }.average() // Tính trung bình số sao
                     } else {
-                        item.Star
+                        item.Star // Nếu không có đánh giá, giữ nguyên item.Star
                     }
                 }
 
-                override fun onCancelled(error: DatabaseError) {}
+                override fun onCancelled(error: DatabaseError) {
+                    Log.e("Items", "Error fetching ratings: ${error.message}")
+                }
             })
     }
 
@@ -152,7 +154,7 @@ fun RatingBarRow(star: Double) {
                 .padding(end = 4.dp)
         )
         Text(
-            text = String.format("%.1f", star),
+            text = String.format("%.1f", star), // Hiển thị số sao với 1 chữ số thập phân
             style = MaterialTheme.typography.body1
         )
     }
@@ -199,6 +201,7 @@ fun formatPrice(price: Double): String {
 data class Rating(
     val stars: Int = 0,
     val comment: String = "",
+    val productTitle: String = "", // Thêm trường này
     val userId: String = "",
     val fullName: String = "",
     val timestamp: Long = 0L

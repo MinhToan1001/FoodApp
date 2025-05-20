@@ -26,6 +26,7 @@ import com.example.foodapp.Activity.Users.payment.VNPayUtils
 import com.example.foodapp.Activity.Cart.CartScreen
 import com.example.foodapp.Activity.Favorite.FavoriteScreen
 import com.example.foodapp.Activity.Order.OrderScreen
+import com.example.foodapp.Activity.Users.Profile.OrderHistoryScreen
 import com.example.foodapp.Activity.Profile.ChangePasswordScreen
 import com.example.foodapp.Activity.Profile.EditProfileScreen
 import com.example.foodapp.Activity.Profile.ProfileScreen
@@ -34,14 +35,12 @@ import com.example.foodapp.Domain.BannerModel
 import com.example.foodapp.ViewModel.MainViewModel
 import com.example.foodapp.utils.SessionUtils
 import com.example.foodapp.ui.theme.FoodAppTheme
-import com.google.firebase.FirebaseApp
-import com.uilover.project2142.Helper.ManagmentCart
 import kotlinx.coroutines.CoroutineScope
 import java.util.TreeMap
 
 class MainActivity : ComponentActivity() {
     private var isDeepLinkHandled = false
-    private var navController: NavController? = null // Lưu NavController
+    private var navController: NavController? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -58,7 +57,7 @@ class MainActivity : ComponentActivity() {
                     },
                     snackbarHostState = SnackbarHostState(),
                     scope = rememberCoroutineScope(),
-                    onNavControllerReady = { navController = it } // Lưu NavController
+                    onNavControllerReady = { navController = it }
                 )
             }
         }
@@ -148,10 +147,22 @@ class MainActivity : ComponentActivity() {
             } else {
                 Log.d("PaymentResult", "Payment failed or canceled, status: $transactionStatus")
                 Toast.makeText(this, "Thanh toán thất bại hoặc bị hủy", Toast.LENGTH_LONG).show()
-                navController?.navigate("cart") {
-                    popUpTo(navController!!.graph.startDestinationId) { inclusive = true }
-                    launchSingleTop = true
-                } ?: Log.e("PaymentResult", "NavController is null")
+
+                // Cập nhật trạng thái đơn hàng thành "Đã hủy" khi thanh toán bị hủy
+                VNPayUtils.updateOrderStatusAfterCancellation(this, txnRef, userId, {
+                    Log.d("PaymentResult", "Order status updated to canceled")
+                    navController?.navigate("cart") {
+                        popUpTo(navController!!.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    } ?: Log.e("PaymentResult", "NavController is null")
+                }, { error ->
+                    Log.e("PaymentResult", "Error updating order status to canceled: $error")
+                    Toast.makeText(this, "Lỗi cập nhật trạng thái đơn hàng: $error", Toast.LENGTH_LONG).show()
+                    navController?.navigate("cart") {
+                        popUpTo(navController!!.graph.startDestinationId) { inclusive = true }
+                        launchSingleTop = true
+                    } ?: Log.e("PaymentResult", "NavController is null")
+                })
             }
         } else {
             Log.e("PaymentResult", "Invalid secure hash")
@@ -230,7 +241,7 @@ fun AppNavigation(
             composable("edit_profile") {
                 EditProfileScreen(userId = currentUserId, onBack = { navController.popBackStack() })
             }
-            composable("order_history") { Text("Màn hình Lịch sử Đơn hàng") }
+            composable("order_history") { OrderHistoryScreen() }
             composable("change_password") {
                 ChangePasswordScreen(
                     userId = currentUserId,
@@ -250,6 +261,7 @@ fun AppNavigation(
         }
     }
 }
+
 @Composable
 fun MainScreen(viewModel: MainViewModel = MainViewModel()) {
     val banners = remember { mutableStateOf<List<BannerModel>>(emptyList()) }
@@ -300,7 +312,7 @@ fun MainScreen(viewModel: MainViewModel = MainViewModel()) {
             CategorySection(
                 categories = filteredCategories,
                 showCategoryLoading = showCategoryLoading.value,
-                searchQuery = searchQuery // Pass searchQuery
+                searchQuery = searchQuery
             )
         }
     }

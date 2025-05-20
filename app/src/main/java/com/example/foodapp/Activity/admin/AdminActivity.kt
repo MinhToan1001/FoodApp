@@ -73,10 +73,6 @@ fun AdminScreen(
                         popUpTo(navController.graph.startDestinationId)
                         launchSingleTop = true
                     }
-                    4 -> navController.navigate("settings") {
-                        popUpTo(navController.graph.startDestinationId)
-                        launchSingleTop = true
-                    }
                 }
             }
         }

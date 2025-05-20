@@ -12,18 +12,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.foodapp.Domain.CategoryModel
 import com.example.foodapp.Domain.FoodModel
+import com.example.foodapp.R
 import com.example.foodapp.ViewModel.MainViewModel
 import com.example.foodapp.utils.CloudinaryConfig
 import com.google.firebase.database.FirebaseDatabase
@@ -48,6 +52,8 @@ fun FoodManageScreen(
     var editingFood by remember { mutableStateOf<FoodModel?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isUploading by remember { mutableStateOf(false) }
+    var selectedCategoryId by remember { mutableStateOf<String?>(null) }
+
 
     val coroutineScope = rememberCoroutineScope()
 
@@ -68,19 +74,56 @@ fun FoodManageScreen(
             item {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(onClick = {
-                        editingFood = null
-                        showDialog = true
-                    }) {
-                        Text("Thêm món ăn")
+                    // Dropdown để chọn danh mục
+                    var expanded by remember { mutableStateOf(false) }
+                    Box {
+                        OutlinedButton(onClick = { expanded = true }) {
+                            Text(
+                                text = categoriesState.find { it.id.toString() == selectedCategoryId }?.name ?: "Tất cả danh mục",
+                                fontSize = 14.sp
+                            )
+                        }
+
+                        DropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            DropdownMenuItem(onClick = {
+                                selectedCategoryId = null
+                                expanded = false
+                            }) {
+                                Text("Tất cả danh mục")
+                            }
+                            categoryList.forEach { category ->
+                                DropdownMenuItem(onClick = {
+                                    selectedCategoryId = category.id.toString()
+                                    expanded = false
+                                }) {
+                                    Text(category.name ?: "Không tên")
+                                }
+                            }
+                        }
+                    }
+
+                    // Nút thêm món ăn
+                    Button(
+                        onClick = {
+                            editingFood = null
+                            showDialog = true
+                        },
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF4CAF50)) // màu xanh lá cây
+                    ) {
+                        Text("+", fontSize = 20.sp, color = Color.White)
                     }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            items(foodList) { food ->
+
+            items(foodList.filter { selectedCategoryId == null || it.CategoryId == selectedCategoryId }) { food ->
                 FoodItemRow(
                     food = food,
                     onClick = {
@@ -226,8 +269,10 @@ fun FoodItemRow(
                 Text("Số lượng: ${food.numberInCart}", fontSize = 12.sp)
             }
         }
-        Text(
-            "🗑️",
+        Icon(
+            imageVector = Icons.Filled.Delete,
+            contentDescription = "Xóa",
+            tint = colorResource(id = R.color.red), // Áp dụng màu ở đây
             modifier = Modifier
                 .clickable { onDelete(food) }
                 .padding(start = 8.dp)
@@ -289,13 +334,6 @@ fun FoodDialog(
                     value = timeValue,
                     onValueChange = { timeValue = it },
                     label = { Text("Thời gian chuẩn bị (phút)") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = star,
-                    onValueChange = { star = it },
-                    label = { Text("Đánh giá (sao)") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -386,7 +424,6 @@ fun FoodDialog(
                                 Description = description,
                                 Price = price.toDoubleOrNull() ?: 0.0,
                                 TimeValue = timeValue.toIntOrNull() ?: 0,
-                                Star = star.toDoubleOrNull() ?: 0.0,
                                 Calorie = calorie.toIntOrNull() ?: 0,
                                 numberInCart = numberInCart.toIntOrNull() ?: 0,
                                 CategoryId = selectedCategoryId,

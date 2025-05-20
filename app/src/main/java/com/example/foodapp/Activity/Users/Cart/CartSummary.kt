@@ -45,7 +45,7 @@ fun CartSummary(itemTotal: Double, tax: Double, delivery: Double) {
                 modifier = Modifier.weight(1f),
                 color = colorResource(R.color.darkPurple)
             )
-            Text(text = "${decimalFormat.format(delivery)} VNĐ")
+            Text(text = "${decimalFormat.format(delivery)} VNĐ") // Sử dụng delivery động
         }
         Row(
             modifier = Modifier

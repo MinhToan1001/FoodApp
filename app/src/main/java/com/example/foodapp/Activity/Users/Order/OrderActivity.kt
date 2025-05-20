@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,13 +15,17 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.foodapp.Activity.Splash.SplashMainActivity
 import com.example.foodapp.R
 import com.example.foodapp.utils.SessionUtils
@@ -187,54 +192,70 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
             fontWeight = FontWeight.Bold
         )
         order.items.forEach { item ->
-            Column(
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 4.dp)
             ) {
-                Row {
-                    Text(
-                        text = "${item.title} (x${item.quantity})",
-                        modifier = Modifier.weight(1f),
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = "${decimalFormat.format(item.price * item.quantity)} VNĐ",
-                        fontSize = 16.sp
-                    )
-                }
-                userRatings[item.title]?.let { rating ->
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(top = 4.dp)
-                    ) {
+                // Hiển thị hình ảnh món ăn
+                AsyncImage(
+                    model = item.imageUrl.ifEmpty { "https://via.placeholder.com/60" }, // Đường dẫn mặc định nếu không có hình
+                    contentDescription = "Hình ảnh món ${item.title}",
+                    modifier = Modifier
+                        .size(60.dp)
+                        .clip(RoundedCornerShape(8.dp)),
+                    contentScale = ContentScale.Crop
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Thông tin món ăn
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row {
                         Text(
-                            text = "Đánh giá của bạn cho ${item.title}:",
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Bold
+                            text = "${item.title} (x${item.quantity})",
+                            modifier = Modifier.weight(1f),
+                            fontSize = 16.sp
                         )
-                        Row {
-                            for (i in 1..rating.stars) {
-                                Text(
-                                    text = "★",
-                                    color = Color.Yellow,
-                                    fontSize = 14.sp
-                                )
+                        Text(
+                            text = "${decimalFormat.format(item.price * item.quantity)} VNĐ",
+                            fontSize = 16.sp
+                        )
+                    }
+                    userRatings[item.title]?.let { rating ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 4.dp)
+                        ) {
+                            Text(
+                                text = "Đánh giá của bạn cho ${item.title}:",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Row {
+                                for (i in 1..rating.stars) {
+                                    Text(
+                                        text = "★",
+                                        color = Color.Yellow,
+                                        fontSize = 14.sp
+                                    )
+                                }
                             }
+                            Text(
+                                text = rating.comment,
+                                fontSize = 12.sp,
+                                color = Color.Black,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                            Text(
+                                text = "Ngày đánh giá: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(rating.timestamp))}",
+                                fontSize = 10.sp,
+                                color = Color.Gray,
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
                         }
-                        Text(
-                            text = rating.comment,
-                            fontSize = 12.sp,
-                            color = Color.Black,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
-                        Text(
-                            text = "Ngày đánh giá: ${SimpleDateFormat("dd/MM/yyyy HH:mm", Locale.getDefault()).format(Date(rating.timestamp))}",
-                            fontSize = 10.sp,
-                            color = Color.Gray,
-                            modifier = Modifier.padding(top = 2.dp)
-                        )
                     }
                 }
             }
@@ -246,19 +267,31 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
             modifier = Modifier.padding(top = 8.dp)
         )
         Text(
-            text = "Trạng thái: ${order.status}",
+            text = "Trạng thái: ${if (order.status == "Chưa xác nhận (Đã thanh toán)") "Chưa xác nhận" else order.status}",
             fontSize = 14.sp,
             color = when (order.status) {
-                "Chưa xác nhận" -> Color.Red
+                "Chưa xác nhận", "Chưa xác nhận (Đã thanh toán)" -> Color.Red
                 "Đã xác nhận" -> Color.Blue
                 "Đang giao hàng" -> Color(0xFFFFA500)
                 "Đã giao hàng" -> Color.Green
+                "Hủy đơn hàng" -> Color.Gray
                 else -> Color.Gray
             },
             modifier = Modifier.padding(top = 4.dp)
         )
+        Text(
+            text = "Thanh toán: ${order.paymentStatus}",
+            fontSize = 14.sp,
+            color = when (order.paymentStatus) {
+                "Đã thanh toán" -> Color.Green
+                "Thanh toán khi nhận hàng" -> Color(0xFFFFA500)
+                else -> Color.Red
+            },
+            modifier = Modifier.padding(top = 4.dp)
+        )
 
-        if (order.status == "Chưa xác nhận") {
+        // Show "Hủy đơn hàng" button only for COD orders with "Chưa xác nhận" status
+        if (order.status == "Chưa xác nhận" && order.paymentMethod == "COD") {
             Button(
                 onClick = {
                     if (order.orderId != null) {
@@ -296,12 +329,20 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
             Button(
                 onClick = {
                     if (order.orderId != null) {
-                        FirebaseDatabase.getInstance().getReference("orders")
-                            .child(order.orderId)
-                            .child("status")
-                            .setValue("Đã giao hàng")
+                        val orderRef = FirebaseDatabase.getInstance().getReference("orders").child(order.orderId)
+                        orderRef.child("status").setValue("Đã giao hàng")
                             .addOnSuccessListener {
                                 Log.d("OrderItem", "Cập nhật trạng thái thành công: Đã giao hàng")
+                                // Update payment status to "Đã thanh toán" only for COD
+                                if (order.paymentMethod == "COD") {
+                                    orderRef.child("paymentStatus").setValue("Đã thanh toán")
+                                        .addOnSuccessListener {
+                                            Log.d("OrderItem", "Cập nhật trạng thái thanh toán thành công: Đã thanh toán")
+                                        }
+                                        .addOnFailureListener { e ->
+                                            Log.e("OrderItem", "Lỗi cập nhật trạng thái thanh toán: ${e.message}")
+                                        }
+                                }
                             }
                             .addOnFailureListener { e ->
                                 Log.e("OrderItem", "Lỗi cập nhật trạng thái: ${e.message}")
@@ -453,9 +494,9 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                             )
                             Log.d("OrderItem", "Chuẩn bị lưu đánh giá: $newRating")
 
-                            FirebaseDatabase.getInstance().getReference("ratings")
-                                .push()
-                                .setValue(newRating)
+                            // Lưu vào ratings
+                            val ratingsRef = FirebaseDatabase.getInstance().getReference("ratings").push()
+                            ratingsRef.setValue(newRating)
                                 .addOnSuccessListener {
                                     Log.d("OrderItem", "Lưu đánh giá vào ratings thành công")
                                 }
@@ -464,6 +505,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                     errorMessage = "Lỗi lưu đánh giá: Vui lòng thử lại"
                                 }
 
+                            // Lưu vào orders
                             FirebaseDatabase.getInstance().getReference("orders")
                                 .child(order.orderId)
                                 .child("ratings")
@@ -472,6 +514,20 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                 .setValue(newRating)
                                 .addOnSuccessListener {
                                     Log.d("OrderItem", "Lưu đánh giá vào orders thành công")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào orders: ${e.message}")
+                                    errorMessage = "Lỗi lưu đánh giá: Vui lòng thử lại"
+                                }
+
+                            // Lưu vào products/{item.Title}/ratings
+                            FirebaseDatabase.getInstance().getReference("products")
+                                .child(selectedItem!!.title)
+                                .child("ratings")
+                                .child(userId)
+                                .setValue(newRating)
+                                .addOnSuccessListener {
+                                    Log.d("OrderItem", "Lưu đánh giá vào products thành công")
                                     userRatings = userRatings.toMutableMap().apply {
                                         put(selectedItem!!.title, newRating)
                                     }
@@ -482,7 +538,7 @@ fun OrderItem(order: Order, userId: String, userFullName: String) {
                                     errorMessage = ""
                                 }
                                 .addOnFailureListener { e ->
-                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào orders: ${e.message}")
+                                    Log.e("OrderItem", "Lỗi lưu đánh giá vào products: ${e.message}")
                                     errorMessage = "Lỗi lưu đánh giá: Vui lòng thử lại"
                                 }
                         },
@@ -538,13 +594,15 @@ data class Order(
     val totalAmount: Double = 0.0,
     val status: String = "Chưa xác nhận",
     val timestamp: Long = 0L,
-    val paymentMethod: String? = null
+    val paymentMethod: String? = null,
+    val paymentStatus: String = "Chưa thanh toán"
 )
 
 data class OrderItemData(
     val title: String = "",
     val quantity: Int = 0,
-    val price: Double = 0.0
+    val price: Double = 0.0,
+    val imageUrl: String = "" // Đã thêm trường imageUrl để lưu đường dẫn hình ảnh
 )
 
 data class Rating(

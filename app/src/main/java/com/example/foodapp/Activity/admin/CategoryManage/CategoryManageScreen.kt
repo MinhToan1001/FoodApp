@@ -12,17 +12,21 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.foodapp.Domain.CategoryModel
+import com.example.foodapp.R
 import com.example.foodapp.ViewModel.MainViewModel
 import com.example.foodapp.utils.CloudinaryConfig
 import com.google.firebase.database.FirebaseDatabase
@@ -47,6 +51,7 @@ fun CategoryManageScreen(
     var isUploading by remember { mutableStateOf(false) }
 
     val coroutineScope = rememberCoroutineScope()
+    var categoryToDelete by remember { mutableStateOf<CategoryModel?>(null) }
 
     Scaffold(
         modifier = modifier,
@@ -87,16 +92,7 @@ fun CategoryManageScreen(
                         showDialog = true
                     },
                     onDelete = { cat ->
-                        FirebaseDatabase.getInstance()
-                            .getReference("Category")
-                            .child(cat.id.toString())
-                            .removeValue()
-                            .addOnSuccessListener {
-                                Log.d("FirebaseDelete", "Xóa danh mục thành công: ${cat.id}")
-                            }
-                            .addOnFailureListener { e ->
-                                Log.e("FirebaseError", "Lỗi khi xóa danh mục: ${e.message}")
-                            }
+                        categoryToDelete = cat
                     }
                 )
             }
@@ -204,6 +200,37 @@ fun CategoryManageScreen(
                 }
             )
         }
+
+        categoryToDelete?.let { category ->
+            AlertDialog(
+                onDismissRequest = { categoryToDelete = null },
+                title = { Text("Xác nhận xóa") },
+                text = { Text("Bạn có chắc chắn muốn xóa danh mục \"${category.name}\" không?") },
+                confirmButton = {
+                    Button(onClick = {
+                        FirebaseDatabase.getInstance()
+                            .getReference("Category")
+                            .child(category.id.toString())
+                            .removeValue()
+                            .addOnSuccessListener {
+                                Log.d("FirebaseDelete", "Xóa danh mục thành công: ${category.id}")
+                            }
+                            .addOnFailureListener { e ->
+                                Log.e("FirebaseError", "Lỗi khi xóa danh mục: ${e.message}")
+                            }
+                        categoryToDelete = null
+                    }) {
+                        Text("Xóa", color = Color.White)
+                    }
+                },
+                dismissButton = {
+                    OutlinedButton(onClick = { categoryToDelete = null }) {
+                        Text("Hủy")
+                    }
+                }
+            )
+        }
+
     }
 }
 @Composable
@@ -232,12 +259,15 @@ fun CategoryItemRow(
             )
             Text(category.name ?: "Không có tên", fontWeight = FontWeight.Bold)
         }
-        Text(
-            "🗑️",
+        Icon(
+            imageVector = Icons.Filled.Delete,
+            contentDescription = "Xóa",
+            tint = colorResource(id = R.color.red), // Áp dụng màu ở đây
             modifier = Modifier
                 .clickable { onDelete(category) }
                 .padding(start = 8.dp)
         )
+
     }
 }
 

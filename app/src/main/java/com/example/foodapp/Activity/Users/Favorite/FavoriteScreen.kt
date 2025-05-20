@@ -1,5 +1,6 @@
 package com.example.foodapp.Activity.Favorite
 
+import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
+import com.example.foodapp.Activity.DetailEachFood.DetailEachFoodActivity
 import com.example.foodapp.Domain.FoodModel
 import com.example.foodapp.Helper.FavoriteManager
 import com.example.foodapp.R
@@ -31,7 +33,7 @@ fun FavoriteScreen() {
     val favoriteManager = remember { FavoriteManager(context) }
     var favorites by remember { mutableStateOf<List<FoodModel>>(emptyList()) }
 
-    // Tải danh sách yêu thích từ Firebase
+    // Load danh sách yêu thích từ Firebase
     LaunchedEffect(Unit) {
         favoriteManager.getFavorites { items ->
             favorites = items
@@ -49,7 +51,9 @@ fun FavoriteScreen() {
             fontWeight = FontWeight.Bold,
             color = colorResource(R.color.darkPurple)
         )
+
         Spacer(modifier = Modifier.height(16.dp))
+
         if (favorites.isEmpty()) {
             Text(
                 text = "Chưa có sản phẩm yêu thích nào",
@@ -68,6 +72,11 @@ fun FavoriteScreen() {
                             favoriteManager.getFavorites { updatedItems ->
                                 favorites = updatedItems
                             }
+                        },
+                        onItemClick = {
+                            val intent = Intent(context, DetailEachFoodActivity::class.java)
+                            intent.putExtra("object", item)
+                            context.startActivity(intent)
                         }
                     )
                 }
@@ -77,17 +86,20 @@ fun FavoriteScreen() {
 }
 
 @Composable
-fun FavoriteItem(item: FoodModel, onRemove: () -> Unit) {
+fun FavoriteItem(
+    item: FoodModel,
+    onRemove: () -> Unit,
+    onItemClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .clickable { onItemClick() }
             .padding(vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically
-        ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
             Image(
                 painter = rememberAsyncImagePainter(model = item.ImagePath),
                 contentDescription = null,
@@ -96,6 +108,7 @@ fun FavoriteItem(item: FoodModel, onRemove: () -> Unit) {
                     .size(60.dp)
                     .padding(end = 8.dp)
             )
+
             Column {
                 Text(
                     text = item.Title,
@@ -103,8 +116,10 @@ fun FavoriteItem(item: FoodModel, onRemove: () -> Unit) {
                     fontWeight = FontWeight.Bold,
                     color = colorResource(R.color.darkPurple)
                 )
+
                 val format = DecimalFormat("#,###")
                 val priceFormatted = format.format(item.Price)
+
                 Text(
                     text = "$priceFormatted đ",
                     fontSize = 14.sp,
@@ -112,6 +127,7 @@ fun FavoriteItem(item: FoodModel, onRemove: () -> Unit) {
                 )
             }
         }
+
         Image(
             painter = painterResource(R.drawable.cross),
             contentDescription = "Xóa khỏi yêu thích",
@@ -121,7 +137,6 @@ fun FavoriteItem(item: FoodModel, onRemove: () -> Unit) {
         )
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable
@@ -133,7 +148,8 @@ fun PreviewFavoriteItem() {
                 Price = 45000.0,
                 ImagePath = "https://via.placeholder.com/150"
             ),
-            onRemove = {}
+            onRemove = {},
+            onItemClick = {}
         )
     }
 }

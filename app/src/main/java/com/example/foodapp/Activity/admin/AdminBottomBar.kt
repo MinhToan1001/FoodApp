@@ -60,8 +60,5 @@ fun prepareAdminBottomMenu(): List<AdminBottomMenuItem> {
         AdminBottomMenuItem(
             icon = painterResource(R.drawable.credit_card)
         ),
-        AdminBottomMenuItem(
-            icon = painterResource(R.drawable.btn_5)
-        )
     )
 }
